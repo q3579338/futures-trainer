@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  background: #ffffff;
+  color: #1e2329;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  font-family: BinanceNova, -apple-system, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='range'] {
+  accent-color: #fcd535;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.tn {
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-label {
+  border-bottom: 1px dashed #c7ccd3;
+}
