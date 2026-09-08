@@ -38,6 +38,7 @@ import LeverageSheet from './LeverageSheet';
 import MarginModeSheet from './MarginModeSheet';
 import PercentSlider from './PercentSlider';
 import PrefsSheet from './PrefsSheet';
+import { normalizeFeeTier } from '../engine/fees';
 import StepInput from './StepInput';
 
 export default function OrderForm({
@@ -53,6 +54,7 @@ export default function OrderForm({
   positionMode = 'ONE_WAY',
   onCommitLeverage,
   onPositionMode,
+  onFeeTier,
   onDeposit,
   onRequestConfirm,
 }: {
@@ -68,6 +70,7 @@ export default function OrderForm({
   positionMode?: PositionMode;
   onCommitLeverage?: (n: number) => string | undefined;
   onPositionMode?: (m: PositionMode) => string | undefined;
+  onFeeTier?: (level: number) => void;
   onDeposit?: () => void;
   onRequestConfirm: (draft: ConfirmDraft, input: PlaceOrderInput) => void;
 }) {
@@ -158,7 +161,7 @@ export default function OrderForm({
   const notional = qtyCoin * px;
   const im = qtyCoin > 0 && leverage > 0 ? initialMargin(qtyCoin, px, leverage) : 0;
   const maker = panel === 'LIMIT' && (postOnly || tif === 'GTC' || tif === 'GTX');
-  const fee = qtyCoin > 0 ? calcFee(notional, maker) : 0;
+  const fee = qtyCoin > 0 ? calcFee(notional, maker, state.feeTier) : 0;
   const maxLongUsdt = avail * leverage;
   const maxShortUsdt = maxLongUsdt;
   const insufficient = qtyCoin > 0 && avail < im + fee;
@@ -586,6 +589,8 @@ export default function OrderForm({
         mode={positionMode}
         onClose={() => setPosModeOpen(false)}
         onMode={(m) => onPositionMode?.(m) ?? undefined}
+        feeTier={normalizeFeeTier(state.feeTier)}
+        onFeeTier={(l) => onFeeTier?.(l)}
       />
     </div>
   );

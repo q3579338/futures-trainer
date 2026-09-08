@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { unrealizedPnl } from '../engine/account';
+import { positionRealized } from '../engine/realized';
 import { adlLights } from '../engine/adl';
 import { maintenanceMargin } from '../engine/brackets';
 import { distToLiqPct, positionLiquidationPrice } from '../engine/liquidation';
@@ -45,9 +46,7 @@ export default function PositionCard({
   const danger = dist < 20;
   const critical = dist < 10;
   const lights = adlLights(pos, mark);
-  const realized = state.trades
-    .filter((t) => t.positionId === pos.id && (t.type === 'CLOSE' || t.type === 'FUNDING'))
-    .reduce((s, t) => s + (t.type === 'CLOSE' ? t.realizedPnl : -(t.funding ?? 0)), 0);
+  const realized = positionRealized(state.trades, pos.id).total;
   const showLp = !(pos.marginMode === 'CROSSED' && dist > 40);
   const [shareHint, setShareHint] = useState(false);
 

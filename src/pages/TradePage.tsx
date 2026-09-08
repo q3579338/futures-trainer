@@ -15,6 +15,7 @@ import OrderBook from '../components/OrderBook';
 import OrderForm from '../components/OrderForm';
 import PositionsDock from '../components/PositionsDock';
 import PrefsSheet from '../components/PrefsSheet';
+import { normalizeFeeTier } from '../engine/fees';
 import ResetSheet from '../components/ResetSheet';
 import RiskSettings from '../components/RiskSettings';
 import SymbolPicker from '../components/SymbolPicker';
@@ -122,6 +123,7 @@ export default function TradePage({ now }: { now: number }) {
             positionMode={sim.state.positionMode ?? 'ONE_WAY'}
             onCommitLeverage={(n) => sim.changeLeverage(market.symbol, n)}
             onPositionMode={(m) => sim.setPositionMode(m)}
+            onFeeTier={(l) => sim.setFeeTier(l)}
             onDeposit={() => setDeposit(true)}
             onRequestConfirm={(draft, input) => {
               setConfirmErr('');
@@ -301,6 +303,8 @@ export default function TradePage({ now }: { now: number }) {
         mode={sim.state.positionMode ?? 'ONE_WAY'}
         onClose={() => setPrefs(false)}
         onMode={(m) => sim.setPositionMode(m)}
+        feeTier={normalizeFeeTier(sim.state.feeTier)}
+        onFeeTier={(l) => sim.setFeeTier(l)}
       />
       <ContractInfoSheet
         open={contract}

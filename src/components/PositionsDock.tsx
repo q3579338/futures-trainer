@@ -1,3 +1,5 @@
+import { feeTierLabel } from '../engine/fees';
+import { positionRealized, realizedAmountOf } from '../engine/realized';
 import { useMemo, useState } from 'react';
 import { ledgerRows } from '../engine/history';
 import type { EngineState, LedgerKind, Order, Position, TradeRecord } from '../engine/types';
@@ -327,30 +329,80 @@ export default function PositionsDock({
         {view === 'robot' && <Empty>交易机器人未开放</Empty>}
       </div>
 
-      {realizedPos && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center">
-          <button type="button" className="absolute inset-0 bg-black/40" onClick={() => setRealizedPos(null)} />
-          <div className="relative w-full max-w-lg rounded-t-sheet bg-white p-4">
-            <div className="mb-2 text-center text-[16px] font-semibold">实现盈亏</div>
-            <div className="text-[13px] text-bn-muted">{realizedPos.symbol}</div>
-            {state.trades
-              .filter((t) => t.positionId === realizedPos.id && (t.type === 'CLOSE' || t.type === 'FUNDING'))
-              .map((t) => (
-                <div key={t.id} className="flex justify-between py-1 text-[13px]">
-                  <span className="text-bn-muted">{t.type === 'FUNDING' ? '资金费' : '平仓'}</span>
-                  <span className={pnlClass(t.type === 'CLOSE' ? t.realizedPnl : -(t.funding ?? 0))}>
-                    {fmtPnl(t.type === 'CLOSE' ? t.realizedPnl : -(t.funding ?? 0))}
-                  </span>
+      {realizedPos &&
+        (() => {
+          const rz = positionRealized(state.trades, realizedPos.id);
+          return (
+            <div className="fixed inset-0 z-40 flex items-end justify-center">
+              <button type="button" className="absolute inset-0 bg-black/40" onClick={() => setRealizedPos(null)} />
+              <div className="relative w-full max-w-lg rounded-t-sheet bg-white p-4">
+                <div className="mb-1 text-center text-[16px] font-semibold">实现盈亏</div>
+                <div className="text-center text-[12px] text-bn-muted">
+                  {realizedPos.symbol} 永续 · {realizedPos.side === 'LONG' ? '多' : '空'} {realizedPos.leverage}x
                 </div>
-              ))}
-            <button type="button" onClick={() => setRealizedPos(null)} className="mt-3 h-10 w-full rounded-lg bg-bn-input">
-              关闭
-            </button>
-          </div>
-        </div>
-      )}
+                <div className={`mt-2 text-center text-[26px] font-bold tn ${pnlClass(rz.total)}`}>{fmtPnl(rz.total)}</div>
+                <div className="text-center text-[11px] text-bn-muted">USDT · 平仓盈亏 − 交易手续费 − 资金费用</div>
+                <div className="mt-3 divide-y divide-bn-line text-[13px]">
+                  <RealizedRow label="平仓盈亏" value={rz.closedPnl} />
+                  <RealizedRow label="交易手续费" value={-rz.fee} />
+                  <RealizedRow label="资金费用" value={-rz.funding} />
+                </div>
+                <div className="mt-2 text-[11px] text-bn-muted">手续费按 {feeTierLabel(state.feeTier)}（偏好设置可改）</div>
+                <div className="mt-3 max-h-52 overflow-y-auto no-scrollbar text-[12px]">
+                  {rz.records.length === 0 && <Empty>暂无记录</Empty>}
+                  {rz.records
+                    .slice()
+                    .reverse()
+                    .map((t) => (
+                      <div key={t.id} className="flex items-center justify-between border-b border-bn-line py-1.5">
+                        <div>
+                          <div>{realizedRecLabel(t)}</div>
+                          <div className="text-[11px] text-bn-muted">
+                            {realizedRecNote(t)} · {fmtTime(t.time)}
+                          </div>
+                        </div>
+                        <span className={`tn ${pnlClass(realizedAmountOf(t))}`}>{fmtPnl(realizedAmountOf(t))}</span>
+                      </div>
+                    ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRealizedPos(null)}
+                  className="mt-3 h-10 w-full rounded-lg bg-bn-input"
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
+}
+
+function RealizedRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex justify-between py-1.5">
+      <span className="text-bn-muted">{label}</span>
+      <span className={`tn ${pnlClass(value)}`}>{fmtPnl(value)}</span>
+    </div>
+  );
+}
+
+function realizedRecLabel(t: TradeRecord): string {
+  if (t.type === 'FUNDING') return '资金费';
+  if (t.type === 'OPEN') return `开仓 ${t.side === 'BUY' ? '买' : '卖'}`;
+  if (t.type === 'LIQUIDATION') return '强平';
+  return `平仓 ${t.side === 'BUY' ? '买' : '卖'}`;
+}
+
+function realizedRecNote(t: TradeRecord): string {
+  if (t.type === 'FUNDING') {
+    const f = t.funding ?? -t.realizedPnl;
+    return `${f >= 0 ? '付出' : '收到'} ${fmtNum(Math.abs(f), 4)}`;
+  }
+  const base = `${t.qty} @ ${t.price} · ${t.isMaker ? 'Maker' : 'Taker'} 手续费 ${fmtNum(t.fee, 4)}`;
+  return t.type === 'OPEN' ? base : `${base} · 盈亏 ${fmtPnl(t.realizedPnl)}`;
 }
 
 function FillRow({ t }: { t: TradeRecord }) {

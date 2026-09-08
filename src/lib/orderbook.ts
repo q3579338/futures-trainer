@@ -61,3 +61,30 @@ export function buildDisplayBook(
     bids: bidRows,
   };
 }
+
+/**
+ * 把 REST 深盘（几百档、两三秒刷一次）接到 WS 前 20 档后面：
+ * 只取价格在 WS 覆盖范围之外的档（卖盘更高、买盘更低），保证不会出现交叉或重复档位。
+ * WS 为空时直接用深盘；深盘为空时原样返回 WS。
+ */
+export function mergeDeepBook(
+  top: { asks: BookLevel[]; bids: BookLevel[] },
+  deep: { asks: BookLevel[]; bids: BookLevel[] } | null | undefined,
+  cap = 400,
+): { asks: BookLevel[]; bids: BookLevel[] } {
+  if (!deep || (deep.asks.length === 0 && deep.bids.length === 0)) return top;
+  const asks = top.asks.filter(([p, q]) => p > 0 && q > 0).slice().sort((a, b) => a[0] - b[0]);
+  const bids = top.bids.filter(([p, q]) => p > 0 && q > 0).slice().sort((a, b) => b[0] - a[0]);
+  const askEdge = asks.length > 0 ? asks[asks.length - 1]![0] : bids.length > 0 ? bids[0]![0] : 0;
+  const bidEdge = bids.length > 0 ? bids[bids.length - 1]![0] : asks.length > 0 ? asks[0]![0] : Infinity;
+  const extraAsks = deep.asks
+    .filter(([p, q]) => p > askEdge && q > 0)
+    .sort((a, b) => a[0] - b[0]);
+  const extraBids = deep.bids
+    .filter(([p, q]) => p < bidEdge && q > 0)
+    .sort((a, b) => b[0] - a[0]);
+  return {
+    asks: [...asks, ...extraAsks].slice(0, cap),
+    bids: [...bids, ...extraBids].slice(0, cap),
+  };
+}

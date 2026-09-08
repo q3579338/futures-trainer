@@ -35,6 +35,8 @@ import {
   type MarketEndpoints,
 } from '../market/endpoints';
 import { midLastPrice, shouldDeriveLastFromDepth, tickerLastOverride } from '../market/lastPrice';
+import { mergeDeepBook } from '../lib/orderbook';
+import { RestHttpError } from '../market/rest';
 
 let extraSymbols: string[] = [];
 let onMarkTick: () => void = () => undefined;
@@ -86,6 +88,8 @@ interface MarketState {
   nextFundingTimes: Record<string, number>;
   fundingIntervals: Record<string, number>;
   depths: Record<string, DepthBook>;
+  /** REST 深盘（500 档，2.5 秒刷一次），只给盘口补档位与大单撮合用 */
+  deepDepths: Record<string, DepthBook>;
   change1m: Record<string, number>;
   priceHist: Record<string, Array<{ t: number; p: number }>>;
   symbols: string[];
@@ -109,6 +113,11 @@ let hintTimer: ReturnType<typeof setTimeout> | null = null;
 let running = false;
 let fb: HybridState = createHybridState(Date.now());
 let lastMuteKey = '';
+let deepTimer: ReturnType<typeof setInterval> | null = null;
+let deepInFlight = false;
+let deepBackoffUntil = 0;
+/** 深盘刷新间隔：limit=500 权重 10，2.5 秒一次约 240/分钟，远低于 2400 的上限 */
+const DEEP_EVERY_MS = 2_500;
 
 function pushHist(
   map: Record<string, Array<{ t: number; p: number }>>,
@@ -219,7 +228,7 @@ function applyDepthBook(symbol: string, book: DepthBook): void {
   const mid = muted ? midLastPrice(book) : null;
   useMarketStore.setState({
     depths: { ...st.depths, [symbol]: book },
-    ...(symbol === st.symbol ? { depth: book } : {}),
+    ...(symbol === st.symbol ? { depth: mergeDeepBook(book, st.deepDepths[symbol]) } : {}),
     ...(mid != null
       ? {
           lastPrices: { ...st.lastPrices, [symbol]: mid },
@@ -228,6 +237,48 @@ function applyDepthBook(symbol: string, book: DepthBook): void {
       : {}),
   });
   if (mid != null) onTradeTick();
+}
+
+/** 深盘只补 WS 前 20 档之外的档位；WS 那份永远是最新的、优先的 */
+function applyDeepBook(symbol: string, book: DepthBook): void {
+  const st = useMarketStore.getState();
+  const top = st.depths[symbol] ?? { asks: [], bids: [] };
+  useMarketStore.setState({
+    deepDepths: { ...st.deepDepths, [symbol]: book },
+    ...(symbol === st.symbol ? { depth: mergeDeepBook(top, book) } : {}),
+  });
+}
+
+async function pollDeep(): Promise<void> {
+  if (!running || deepInFlight) return;
+  if (Date.now() < deepBackoffUntil) return;
+  const symbol = useMarketStore.getState().symbol;
+  deepInFlight = true;
+  try {
+    const book = await fetchDepth(symbol, 500);
+    if (running) applyDeepBook(symbol, book);
+  } catch (e) {
+    // 429/418 按 Retry-After 退避，其它错误 10 秒后再试；深盘失败不影响 WS 前 20 档
+    const ra = e instanceof RestHttpError && e.retryAfterMs != null ? e.retryAfterMs : 10_000;
+    deepBackoffUntil = Date.now() + Math.max(2_000, ra);
+  } finally {
+    deepInFlight = false;
+  }
+}
+
+function startDeepTimer(): void {
+  stopDeepTimer();
+  void pollDeep();
+  deepTimer = setInterval(() => void pollDeep(), DEEP_EVERY_MS);
+}
+
+function stopDeepTimer(): void {
+  if (deepTimer) {
+    clearInterval(deepTimer);
+    deepTimer = null;
+  }
+  deepInFlight = false;
+  deepBackoffUntil = 0;
 }
 
 function applyKlineBars(symbol: string, bars: Kline[]): void {
@@ -470,6 +521,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
   nextFundingTimes: {},
   fundingIntervals: {},
   depths: {},
+  deepDepths: {},
   change1m: {},
   priceHist: {},
   symbols: [...POPULAR],
@@ -478,6 +530,8 @@ export const useMarketStore = create<MarketState>((set, get) => ({
 
   setSymbol: (s) => {
     set({ symbol: s });
+    deepBackoffUntil = 0;
+    void pollDeep();
     void get().refreshSnapshots();
     ws?.setTopic(s, get().interval, extraSymbols);
     poller?.nudge();
@@ -497,6 +551,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
     fb = createHybridState(Date.now());
     set({ transport: 'ws', muteStreams: [], connected: false, endpoints: getEndpoints() });
     startWs();
+    startDeepTimer();
     startSilenceTimer();
     void get().refreshSnapshots();
     void bootstrap();
@@ -508,6 +563,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
     fb = createHybridState(Date.now());
     lastMuteKey = '';
     stopWs();
+    stopDeepTimer();
     stopPoller();
     stopTickerTimer();
     stopSilenceTimer();

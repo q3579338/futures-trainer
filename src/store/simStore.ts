@@ -21,6 +21,7 @@ import { equity } from '../engine/account';
 import type { EngineState, OpenReason, Position, PositionMode, RiskConfig, WorkingType } from '../engine/types';
 import { DEFAULT_RISK_CONFIG } from '../engine/types';
 import { clearEngineState, loadEngineState, saveEngineState } from '../db';
+import { normalizeFeeTier } from '../engine/fees';
 import { currentMarketCtxNow } from './marketStore';
 import { vibrateFill } from '../lib/haptics';
 
@@ -60,6 +61,7 @@ interface SimStore {
   adjustIsolated: (positionId: string, delta: number) => string | undefined;
   changeLeverage: (symbol: string, leverage: number) => string | undefined;
   setPositionMode: (mode: PositionMode) => string | undefined;
+  setFeeTier: (level: number) => void;
   setPendingRisk: (cfg: RiskConfig) => void;
   onMarkTick: () => void;
   onTradeTick: () => void;
@@ -216,6 +218,12 @@ export const useSimStore = create<SimStore>((set, get) => ({
     set({ state: r.state });
     schedulePersist(get);
     return undefined;
+  },
+
+  setFeeTier: (level) => {
+    const next: EngineState = { ...get().state, feeTier: normalizeFeeTier(level) };
+    set({ state: next });
+    schedulePersist(get);
   },
 
   setPendingRisk: (cfg) => {

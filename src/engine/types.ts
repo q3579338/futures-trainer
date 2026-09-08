@@ -156,6 +156,8 @@ export interface EngineState {
   /** 已结束委托（成交/撤销/过期/拒绝），供历史委托页 */
   orderHistory: Order[];
   positionMode: PositionMode;
+  /** 手续费等级 VIP0–VIP9；缺省按 VIP2（engine/fees.ts） */
+  feeTier?: number;
   trades: TradeRecord[];
   deposits: Deposit[];
   snapshots: EquitySnapshot[];

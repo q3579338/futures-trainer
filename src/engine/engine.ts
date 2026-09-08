@@ -1,7 +1,7 @@
 import { uid } from '../lib/id';
 import { availableBalance, equity, markOf, utcDayKey } from './account';
 import { maxLeverageForNotional } from './brackets';
-import { calcFee } from './fees';
+import { calcFee, DEFAULT_FEE_TIER, feeRate, normalizeFeeTier } from './fees';
 import { calcFunding, fundingTimesDue } from './funding';
 import { collectLiquidations } from './liquidation';
 import { addPositionAvgPrice, initialMargin, realizedPnl } from './position';
@@ -85,6 +85,7 @@ export function createInitialState(now = Date.now()): EngineState {
     orders: [],
     orderHistory: [],
     positionMode: 'ONE_WAY',
+    feeTier: DEFAULT_FEE_TIER,
     trades: [],
     deposits: [],
     snapshots: [],
@@ -111,6 +112,7 @@ export function cloneState(s: EngineState): EngineState {
     orders: s.orders.map((o) => ({ ...o })),
     orderHistory: (s.orderHistory ?? []).map((o) => ({ ...o })),
     positionMode: s.positionMode ?? 'ONE_WAY',
+    feeTier: normalizeFeeTier(s.feeTier),
     trades: s.trades.slice(-5000),
     deposits: [...s.deposits],
     snapshots: s.snapshots.slice(-2000),
@@ -447,7 +449,7 @@ function applyFill(state: EngineState, args: FillArgs): string | undefined {
   const qty = args.qty;
   const posIdx = state.positions.findIndex((p) => p.symbol === symbol);
   const pos = posIdx >= 0 ? state.positions[posIdx] : undefined;
-  const fee0 = calcFee(qty * price, isMaker);
+  const fee0 = calcFee(qty * price, isMaker, state.feeTier);
 
   if (wouldOpenNew(pos, side, qty, reduceOnly) || (!pos && !reduceOnly)) {
     const openQty = !pos ? qty : Math.max(0, qty - pos.qty);
@@ -493,7 +495,7 @@ function applyFillHedge(state: EngineState, args: FillArgs): string | undefined 
   const posIdx = state.positions.findIndex((p) => p.symbol === symbol && p.side === target);
   const pos = posIdx >= 0 ? state.positions[posIdx] : undefined;
   const closing = isHedgeClose(side, target);
-  const fee0 = calcFee(qty * price, isMaker);
+  const fee0 = calcFee(qty * price, isMaker, state.feeTier);
 
   if (!closing) {
     if (reduceOnly) return 'reduceOnly 不能加仓';
@@ -543,7 +545,7 @@ function openPosition(state: EngineState, args: FillArgs, qty: number): string |
   if (!reason) return '开新仓必须选择开仓理由';
   const posSide = sideToPos(side);
   const im = initialMargin(qty, price, leverage);
-  const fee = calcFee(qty * price, isMaker);
+  const fee = calcFee(qty * price, isMaker, state.feeTier);
   const { tags, tiltScore } = tagBundle(state, args, qty, price, posSide);
   const avail = availableBalance(state, ctx.markPrice);
   if (avail < im + fee) return '可用余额不足';
@@ -581,7 +583,7 @@ function openPosition(state: EngineState, args: FillArgs, qty: number): string |
     qty,
     price,
     fee,
-    feeRate: isMaker ? 0.0002 : 0.0005,
+    feeRate: feeRate(isMaker, state.feeTier),
     isMaker,
     realizedPnl: 0,
     type: 'OPEN',
@@ -603,7 +605,7 @@ function openPosition(state: EngineState, args: FillArgs, qty: number): string |
 function addPosition(state: EngineState, pos: Position, args: FillArgs, qty: number): string | undefined {
   const { price, isMaker, now, ctx, events, side } = args;
   const im = initialMargin(qty, price, pos.leverage);
-  const fee = calcFee(qty * price, isMaker);
+  const fee = calcFee(qty * price, isMaker, state.feeTier);
   const avail = availableBalance(state, ctx.markPrice);
   if (avail < im + fee) return '可用余额不足';
   const gate = canOpenNew(state, now, im, pos.leverage, equity(state, ctx.markPrice));
@@ -626,7 +628,7 @@ function addPosition(state: EngineState, pos: Position, args: FillArgs, qty: num
     qty,
     price,
     fee,
-    feeRate: isMaker ? 0.0002 : 0.0005,
+    feeRate: feeRate(isMaker, state.feeTier),
     isMaker,
     realizedPnl: 0,
     type: 'OPEN',
@@ -654,7 +656,7 @@ function closePosition(
 ): string | undefined {
   const { price, isMaker, now, ctx, events } = args;
   const exit = args.asLiquidation && args.liqPrice != null ? args.liqPrice : price;
-  const fee = calcFee(qty * exit, isMaker);
+  const fee = calcFee(qty * exit, isMaker, state.feeTier);
   const pnl = realizedPnl(pos.side, qty, pos.entryPrice, exit);
   const ratio = pos.qty > 0 ? qty / pos.qty : 1;
   const released = pos.isolatedWallet * ratio;
@@ -682,7 +684,7 @@ function closePosition(
     qty,
     price: exit,
     fee,
-    feeRate: isMaker ? 0.0002 : 0.0005,
+    feeRate: feeRate(isMaker, state.feeTier),
     isMaker,
     realizedPnl: pnl,
     type: args.asLiquidation ? 'LIQUIDATION' : 'CLOSE',

@@ -164,12 +164,16 @@ export async function fetchTicker24h(symbol?: string): Promise<Ticker24h[]> {
   }));
 }
 
-export async function fetchDepth(symbol: string): Promise<{
+/** 币安只认 5/10/20/50/100/500/1000；默认 20 档（跟 WS 的 depth20 对齐），深盘用 500。 */
+export const DEPTH_LIMITS = [5, 10, 20, 50, 100, 500, 1000] as const;
+export type DepthLimit = (typeof DEPTH_LIMITS)[number];
+
+export async function fetchDepth(symbol: string, limit: DepthLimit = 20): Promise<{
   bids: Array<[number, number]>;
   asks: Array<[number, number]>;
 }> {
   const raw = await getJson<{ bids: string[][]; asks: string[][] }>(
-    `/fapi/v1/depth?symbol=${encodeURIComponent(symbol)}&limit=20`,
+    `/fapi/v1/depth?symbol=${encodeURIComponent(symbol)}&limit=${limit}`,
   );
   return {
     bids: raw.bids.map((x) => [Number(x[0]), Number(x[1])]),
