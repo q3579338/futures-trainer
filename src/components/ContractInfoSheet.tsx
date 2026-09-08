@@ -1,4 +1,4 @@
-import { getBrackets } from '../engine/brackets';
+import { bracketSource, getBrackets, liveBracketMeta } from '../engine/brackets';
 import { fmtNum, fmtPct, fmtTime } from '../lib/format';
 import type { SymbolFilter } from '../market/rest';
 import BottomSheet from './BottomSheet';
@@ -19,6 +19,14 @@ export default function ContractInfoSheet({
   onClose: () => void;
 }) {
   const rows = getBrackets(symbol);
+  const src = bracketSource(symbol);
+  const meta = liveBracketMeta();
+  const srcLabel =
+    src === 'live'
+      ? `币安实时档位表${meta.binanceUpdatedAt ? ` · 币安更新于 ${meta.binanceUpdatedAt.slice(0, 10)}` : ''}`
+      : src === 'builtin'
+        ? '内置档位表（实时表未加载）'
+        : '通用默认表（实时表未收录此合约，强平价偏保守）';
   return (
     <BottomSheet open={open} onClose={onClose} title="合约信息">
       <div className="px-4 pb-4 text-[13px]">
@@ -32,6 +40,7 @@ export default function ContractInfoSheet({
         <Row k="下次资金费" v={nextFundingTime ? fmtTime(nextFundingTime) : '—'} />
         <Row k="资金费上下限" v="±2.00% / 8h（币安默认封顶）" />
         <div className="mt-3 text-[12px] text-bn-muted">杠杆与维持保证金档位</div>
+        <div className="text-[11px] text-bn-muted">{srcLabel}</div>
         <div className="mt-1 overflow-hidden rounded border border-bn-line text-[11px]">
           <div className="grid grid-cols-3 bg-bn-input px-2 py-1 text-bn-muted">
             <span>名义价值</span>

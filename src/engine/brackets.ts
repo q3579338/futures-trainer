@@ -100,8 +100,67 @@ const TABLE: Record<string, Bracket[]> = {
   BNBUSDT: BNBUSDT_BRACKETS,
 };
 
+/**
+ * 实时档位表：启动时从 /brackets.json（tools/fetch-brackets.mjs 生成，随站点/APK 分发）加载，
+ * 覆盖上面的内置表；没加载到就退回内置表 → 默认表。
+ */
+export type BracketRow = [floor: number, cap: number, mmr: number, cum: number, maxLeverage: number];
+export interface BracketTableJson {
+  generatedAt?: string;
+  binanceUpdatedAt?: string | null;
+  count?: number;
+  symbols: Record<string, BracketRow[]>;
+}
+let LIVE: Record<string, Bracket[]> = {};
+let LIVE_META: { generatedAt: string | null; binanceUpdatedAt: string | null; count: number } = {
+  generatedAt: null,
+  binanceUpdatedAt: null,
+  count: 0,
+};
+
+/** 装入实时表，返回收录的 symbol 数；脏行整币跳过 */
+export function loadBracketTable(json: BracketTableJson): number {
+  const next: Record<string, Bracket[]> = {};
+  for (const [sym, rows] of Object.entries(json.symbols ?? {})) {
+    if (!Array.isArray(rows) || rows.length === 0) continue;
+    const parsed: Bracket[] = [];
+    let ok = true;
+    for (const r of rows) {
+      if (!Array.isArray(r) || r.length < 5 || !r.slice(0, 5).every((x) => Number.isFinite(x))) { ok = false; break; }
+      parsed.push(b(r[0], r[1], r[2], r[3], r[4]));
+    }
+    if (!ok) continue;
+    parsed.sort((x, y) => x.notionalFloor - y.notionalFloor);
+    next[sym.toUpperCase()] = parsed;
+  }
+  LIVE = next;
+  LIVE_META = {
+    generatedAt: json.generatedAt ?? null,
+    binanceUpdatedAt: json.binanceUpdatedAt ?? null,
+    count: Object.keys(next).length,
+  };
+  return LIVE_META.count;
+}
+
+export function clearLiveBrackets(): void {
+  LIVE = {};
+  LIVE_META = { generatedAt: null, binanceUpdatedAt: null, count: 0 };
+}
+
+export function liveBracketMeta(): typeof LIVE_META {
+  return LIVE_META;
+}
+
+export function bracketSource(symbol: string): 'live' | 'builtin' | 'default' {
+  const s = symbol.toUpperCase();
+  if (LIVE[s]) return 'live';
+  if (TABLE[s]) return 'builtin';
+  return 'default';
+}
+
 export function getBrackets(symbol: string): Bracket[] {
-  return TABLE[symbol.toUpperCase()] ?? DEFAULT_BRACKETS;
+  const s = symbol.toUpperCase();
+  return LIVE[s] ?? TABLE[s] ?? DEFAULT_BRACKETS;
 }
 
 export function getBracket(symbol: string, notional: number): Bracket {

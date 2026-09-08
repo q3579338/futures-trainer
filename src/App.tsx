@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { loadBracketTable } from './engine/brackets';
 import LiqOverlay from './components/LiqOverlay';
 import DepositModal from './components/DepositModal';
 import ConnectionBanner from './components/ConnectionBanner';
@@ -24,6 +25,13 @@ export default function App() {
     });
     let cancelled = false;
     void (async () => {
+      // 维持保证金档位表：同源静态文件，秒级加载；失败就用内置表（强平价会偏保守）
+      try {
+        const r = await fetch('/brackets.json', { cache: 'no-cache' });
+        if (r.ok) loadBracketTable(await r.json());
+      } catch {
+        /* 离线或文件缺失：内置表兜底 */
+      }
       await useSimStore.getState().hydrate();
       await useMarketStore.getState().hydrateEndpoints();
       if (!cancelled) useMarketStore.getState().start();
