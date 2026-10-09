@@ -1,0 +1,16 @@
+# 合约模拟器 / Futures Trainer
+
+> 使用真实市场行情和模拟资金练习 USDⓈ-M 永续合约交易。A perpetual futures simulator with live market data and simulated funds; no real money is involved.
+
+本工具用于交易练习和交易行为复盘，支持逐仓、全仓、条件单、追踪委托、手续费和强平价计算。交易结果与账户资金均为模拟，不执行真实交易，不构成投资建议或收益承诺。行情连接是否可用取决于数据来源和访问网络；模拟撮合和计算结果不保证与真实交易所完全一致。
+
+## 网站入口 / Main pages
+
+- [模拟器 / Simulator](https://sim.satloot.com/): 浏览器中的模拟交易应用，需要启用 JavaScript。
+- [English overview](https://sim.satloot.com/en/): English introduction, features and simulator entry.
+
+## 其他公开资料 / Optional
+
+- [开源项目 / Source repository](https://github.com/q3579338/futures-trainer): 项目介绍和公开源代码。
+- [站点地图 / Sitemap](https://sim.satloot.com/sitemap.xml): 中英文公开入口。
+- [项目总览 / satloot projects](https://satloot.com/): 站主的公开网站和项目。

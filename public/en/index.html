@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#FFFFFF">
+<title>Futures Trainer · Perpetual Futures Simulator</title>
+<meta name="description" content="Practice USDⓈ-M perpetual futures with real market data and simulated funds: isolated or cross margin, conditional and trailing orders, exchange-formula liquidation, trade behaviour analysis. No real money involved.">
+<link rel="canonical" href="https://sim.satloot.com/en/">
+<link rel="describedby" href="/llms.txt" type="text/plain">
+<link rel="alternate" hreflang="zh-CN" href="https://sim.satloot.com/">
+<link rel="alternate" hreflang="en" href="https://sim.satloot.com/en/">
+<link rel="alternate" hreflang="x-default" href="https://sim.satloot.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Futures Trainer">
+<meta property="og:url" content="https://sim.satloot.com/en/">
+<meta property="og:title" content="Futures Trainer · Perpetual Futures Simulator">
+<meta property="og:description" content="Real market data, simulated funds. Practice perpetual futures, test strategies and feel a liquidation without risking a cent.">
+<meta property="og:image" content="https://sim.satloot.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Futures Trainer · perpetual futures simulator">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Futures Trainer · Perpetual Futures Simulator">
+<meta name="twitter:description" content="Real market data, simulated funds. Practice perpetual futures, test strategies and feel a liquidation without risking a cent.">
+<meta name="twitter:image" content="https://sim.satloot.com/og.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"Organization","@id":"https://sim.satloot.com/#org","name":"satloot","sameAs":["https://x.com/eth61675"],"url":"https://satloot.com/","logo":"https://sim.satloot.com/apple-touch-icon.png"},
+ {"@type":"WebSite","@id":"https://sim.satloot.com/#website","name":"Futures Trainer","url":"https://sim.satloot.com/","inLanguage":["zh-CN","en"],"publisher":{"@id":"https://sim.satloot.com/#org"}},
+ {"@type":"WebApplication","name":"Futures Trainer · Perpetual Futures Simulator","url":"https://sim.satloot.com/","inLanguage":"zh-CN","applicationCategory":"FinanceApplication","operatingSystem":"Web","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"USDⓈ-M perpetual futures simulator with real market data and simulated funds. Isolated or cross margin, conditional and trailing orders, exchange-formula liquidation, trade behaviour analysis. No real money involved.","publisher":{"@id":"https://sim.satloot.com/#org"}}
+]}
+</script>
+<style>
+:root{--bg:#FFFFFF;--bg2:#F6F7FA;--ink:#161A23;--ink2:#3B4150;--dim:#6B7280;--line:#E4E7EE;--acc:#B8541A;--acc-ink:#FFFFFF;--acc-bg:rgba(184,84,26,.08);--ok:#1B7A4A;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;--mono:Consolas,"Cascadia Mono","SF Mono",Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7}
+.wrap{max-width:900px;margin:0 auto;padding:0 24px}
+header.top{border-bottom:1px solid var(--line);background:var(--bg)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;height:60px}
+.brand{font-weight:700;letter-spacing:-.01em;color:var(--ink);text-decoration:none}
+.brand small{font-family:var(--mono);font-weight:500;color:var(--dim);margin-left:8px;font-size:12px}
+.lang{font-size:14px;color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+.lang:hover{color:var(--ink);border-color:var(--dim)}
+.hero{padding:56px 0 32px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin:0 0 12px}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.15;margin:0 0 16px;text-wrap:balance}
+.lede{font-size:19px;color:var(--ink2);margin:0 0 24px;max-width:62ch}
+.cta{display:inline-flex;align-items:center;gap:10px;background:var(--acc);color:var(--acc-ink);text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px}
+.cta:hover{filter:brightness(1.06)}
+.note{margin:18px 0 0;font-size:14px;color:var(--dim)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:36px 0}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.card h2{font-size:16px;margin:0 0 6px}
+.card p{margin:0;font-size:14px;color:var(--ink2)}
+section{padding:8px 0 24px}
+h2.sec{font-size:22px;margin:24px 0 8px}
+ul{padding-left:20px;color:var(--ink2)}
+li{margin:4px 0}
+.warn{border-left:3px solid var(--acc);background:var(--acc-bg);padding:12px 16px;border-radius:0 10px 10px 0;color:var(--ink2);margin:16px 0}
+footer{margin-top:48px;border-top:1px solid var(--line);padding:24px 0 40px;font-size:13px;color:var(--dim)}
+.friends{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px}
+.friends a{color:var(--ink2);text-decoration:none;white-space:nowrap}
+.friends a:hover{color:var(--acc);text-decoration:underline}
+.friends b{font-weight:600}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/en/">Futures Trainer <small>sim.satloot.com</small></a>
+  <a class="lang" href="/" hreflang="zh-CN" lang="zh-CN">中文</a>
+</div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <p class="eyebrow">Perpetual futures · simulator</p>
+    <h1>Practice perpetual futures with real prices and fake money</h1>
+    <p class="lede">A USDⓈ-M perpetual futures simulator: live market data, simulated funds, exchange-style order entry. Feel leverage, funding and liquidation before you risk a single real dollar.</p>
+    <a class="cta" href="/">Open the simulator →</a>
+    <p class="note">The simulator is available in English and Chinese (switch languages from the ⋯ menu). Order forms follow the layout of a major exchange, so the workflow is familiar right away.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h2>Real market data</h2><p>Prices, order-book depth and funding rates stream from the real market; only the money is simulated.</p></div>
+    <div class="card"><h2>Exchange-grade orders</h2><p>Isolated or cross margin, limit and market orders, conditional orders, trailing stops, take-profit and stop-loss.</p></div>
+    <div class="card"><h2>Liquidation by the exchange formula</h2><p>The liquidation price uses the exchange's maintenance-margin brackets, so a wipe-out here looks exactly like a real one.</p></div>
+    <div class="card"><h2>Trade behaviour analysis</h2><p>Every fill is recorded: PnL by symbol, win rate, holding time, chasing and revenge-trading patterns.</p></div>
+  </div>
+
+  <section>
+    <h2 class="sec">What it is for</h2>
+    <ul>
+      <li>Learning how leverage, margin and funding actually move a position.</li>
+      <li>Testing a strategy against live prices without paying tuition to the market.</li>
+      <li>Rehearsing the discipline that a real risk desk expects: sizing, stops, cooling off after a loss.</li>
+    </ul>
+    <div class="warn"><b>No real funds.</b> Nothing on this site touches an exchange account, a wallet or a payment method. Balances are simulated and can be reset at any time.</div>
+  </section>
+
+  <section>
+    <h2 class="sec">Part of the satloot family</h2>
+    <p>The simulator is one of a set of small, open tools built by one person. The risk desk at earn.satloot.com scans the market and enforces trading discipline; the block-hash universes at bnbbang.com and bang.satloot.com turn BNB and Bitcoin blocks into simulated cosmoses.</p>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  <div>© 2026 satloot · Futures Trainer is a simulator only and is not investment advice.</div>
+  <nav class="friends" aria-label="Friends">
+    <b>Friends</b>
+    <a href="https://satloot.com/" rel="noopener">satloot home</a>
+    <a href="https://bnbbang.com/" rel="noopener">BNBBANG mirror universe</a>
+    <a href="https://bang.satloot.com/" rel="noopener">BTCBANG Bitcoin universe</a>
+    <a href="https://earn.satloot.com/" rel="noopener">riskdesk</a>
+    <a href="https://airdrop.satloot.com/" rel="noopener">Airdrop radar</a>
+    <a href="https://game.satloot.com/" rel="noopener">satloot arcade</a>
+    <a href="https://tool.satloot.com/" rel="noopener">satloot tools</a>
+    <a href="https://trx.satloot.com/" rel="noopener">TRX staking calculator</a>
+    <a href="https://skill.satloot.com/" rel="noopener">satloot skills</a>
+    <a href="https://fish.satloot.com/" rel="noopener">Fishing Weather &amp; Bite Index</a>
+    <a href="https://faucet.satloot.com/" rel="noopener">Bitcoin testnet faucet</a>
+  </nav>
+</div></footer>
+</body>
+</html>
